@@ -3,6 +3,7 @@ module github.com/lmtani/rinha-de-backend-2024
 go 1.21.1
 
 require (
+	github.com/goccy/go-json v0.10.2
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/qiangxue/fasthttp-routing v0.0.0-20160225050629-6ccdc2a18d87
 	github.com/valyala/fasthttp v1.51.0

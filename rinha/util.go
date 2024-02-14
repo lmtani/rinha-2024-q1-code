@@ -1,8 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-json"
 	"github.com/qiangxue/fasthttp-routing"
 	"github.com/valyala/fasthttp"
 )

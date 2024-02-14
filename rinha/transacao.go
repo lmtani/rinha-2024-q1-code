@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"strconv"
+
+	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/qiangxue/fasthttp-routing"
 	"github.com/valyala/fasthttp"
-	"strconv"
 )
 
 func handlePostTransacoes(c *routing.Context) error {

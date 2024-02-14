@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/qiangxue/fasthttp-routing"
-	"github.com/valyala/fasthttp"
 	"time"
+
+	routing "github.com/qiangxue/fasthttp-routing"
+	"github.com/valyala/fasthttp"
 )
 
 func handleGetExtrato(c *routing.Context) error {
