@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,6 +16,8 @@ func main() {
 	ctx := context.Background()
 	dbpool = initializeDatabase(ctx, dbpool)
 	defer dbpool.Close()
+
+	fmt.Println("Server running on port 8080")
 
 	router := routing.New()
 	router.Get("/clientes/<id>/extrato", handleGetStatement)
