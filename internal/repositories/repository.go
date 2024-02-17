@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"context"
@@ -8,35 +8,36 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lmtani/rinha-de-backend-2024/internal/models"
 )
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func getClient(tx pgx.Tx, clientID int) (Client, error) {
+func GetClient(tx pgx.Tx, clientID int) (models.Client, error) {
 	const query = "SELECT id, nome, limite, saldo FROM clientes WHERE id = $1"
-	var c Client
+	var c models.Client
 	err := tx.QueryRow(context.Background(), query, clientID).Scan(&c.ID, &c.Name, &c.Limit, &c.Balance)
 	if err != nil {
-		return Client{}, err
+		return models.Client{}, err
 	}
 	return c, nil
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func insertTransaction(tx pgx.Tx, t Transaction) error {
+func InsertTransaction(tx pgx.Tx, t models.Transaction) error {
 	const query = "INSERT INTO transacoes (cliente_id, valor, realizada_em, descricao, tipo) VALUES ($1, $2, now(), $3, $4)"
 	_, err := tx.Exec(context.Background(), query, t.ClienteID, t.Value, t.Description, t.Type)
 	return err
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func updateSaldo(tx pgx.Tx, clienteID, valor int) error {
+func UpdateSaldo(tx pgx.Tx, clienteID, valor int) error {
 	const query = "UPDATE clientes SET saldo = saldo + $1 WHERE id = $2"
 	_, err := tx.Exec(context.Background(), query, valor, clienteID)
 	return err
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func getClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (ClientWithTransactions, error) {
+func GetClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (models.ClientWithTransactions, error) {
 	const query = `
     SELECT c.id, c.limite, c.saldo, t.valor, t.tipo, t.descricao, t.realizada_em
     FROM clientes c
@@ -47,21 +48,21 @@ func getClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (ClientWithT
 
 	rows, err := dbpool.Query(context.Background(), query, clienteID)
 	if err != nil {
-		return ClientWithTransactions{}, err
+		return models.ClientWithTransactions{}, err
 	}
 	defer rows.Close()
 
-	var result ClientWithTransactions
+	var result models.ClientWithTransactions
 	var hasCliente bool
 	for rows.Next() {
-		var transacao Transaction
+		var transacao models.Transaction
 		var tipo, desc sql.NullString // Use a nullable type for the Tipo
 		var realizadaEm sql.NullTime
 		var valor sql.NullInt32
 
 		// Scan the row
 		if err := rows.Scan(&result.Client.ID, &result.Client.Limit, &result.Client.Balance, &valor, &tipo, &desc, &realizadaEm); err != nil {
-			return ClientWithTransactions{}, err
+			return models.ClientWithTransactions{}, err
 		}
 
 		var intVal int
@@ -70,7 +71,7 @@ func getClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (ClientWithT
 		}
 
 		if tipo.Valid { // Check if Tipo is not null
-			transacao = Transaction{
+			transacao = models.Transaction{
 				ClienteID:   clienteID,
 				Description: desc.String,
 				Date:        realizadaEm.Time,
@@ -85,7 +86,7 @@ func getClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (ClientWithT
 		}
 	}
 	if !hasCliente {
-		return ClientWithTransactions{}, errors.New("client not found")
+		return models.ClientWithTransactions{}, errors.New("client not found")
 	}
 	return result, nil
 }

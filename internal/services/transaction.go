@@ -1,4 +1,4 @@
-package main
+package services
 
 import (
 	"context"
@@ -7,11 +7,22 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lmtani/rinha-de-backend-2024/internal/models"
+	"github.com/lmtani/rinha-de-backend-2024/internal/repositories"
 	"github.com/qiangxue/fasthttp-routing"
 	"github.com/valyala/fasthttp"
 )
 
-func handlePostTransactions(c *routing.Context) error {
+type Service struct {
+	dbpool *pgxpool.Pool
+}
+
+func NewService(dbpool *pgxpool.Pool) *Service {
+	return &Service{dbpool}
+}
+
+func (ts *Service) HandlePostTransactions(c *routing.Context) error {
 	clientID, err := parseClientID(c.Param("id"))
 	if err != nil {
 		return respondWithError(c, "Invalid client ID", fasthttp.StatusNotFound)
@@ -24,13 +35,13 @@ func handlePostTransactions(c *routing.Context) error {
 	}
 
 	// Start a new transaction
-	tx, err := dbpool.Begin(context.Background())
+	tx, err := ts.dbpool.Begin(context.Background())
 	if err != nil {
 		return respondWithError(c, "Internal Server Error", fasthttp.StatusInternalServerError)
 	}
 	defer tx.Rollback(context.Background())
 
-	cliente, err := getClient(tx, clientID)
+	cliente, err := repositories.GetClient(tx, clientID)
 	if err != nil {
 		return respondWithError(c, "Client not found", fasthttp.StatusNotFound)
 	}
@@ -44,7 +55,7 @@ func handlePostTransactions(c *routing.Context) error {
 		return respondWithError(c, "New saldo exceeds the limit", fasthttp.StatusUnprocessableEntity)
 	}
 
-	err = insertTransaction(tx, Transaction{ // insertTransaction now uses tx
+	err = repositories.InsertTransaction(tx, models.Transaction{ // insertTransaction now uses tx
 		ClienteID:   clientID,
 		Value:       value,
 		Type:        input.Type,
@@ -63,20 +74,20 @@ func handlePostTransactions(c *routing.Context) error {
 	}
 
 	// update cliente with the new saldo
-	err = updateSaldo(tx, clientID, value)
+	err = repositories.UpdateSaldo(tx, clientID, value)
 
 	err = tx.Commit(context.Background())
 	if err != nil {
 		return err
 	}
 
-	return respondWithJSON(c, TransactionResponse{
+	return respondWithJSON(c, models.TransactionResponse{
 		Limit:   cliente.Limit,
 		Balance: cliente.Balance + value,
 	})
 }
 
-func parseValue(input TransactionInputs) (int, error) {
+func parseValue(input models.TransactionInputs) (int, error) {
 	var value int
 	if input.Type == "c" {
 		value = input.Value
@@ -96,20 +107,20 @@ func parseClientID(clientIDStr string) (int, error) {
 	return clientID, nil
 }
 
-func parseAndValidateInput(body []byte) (TransactionInputs, error) {
-	var input TransactionInputs
+func parseAndValidateInput(body []byte) (models.TransactionInputs, error) {
+	var input models.TransactionInputs
 	err := json.Unmarshal(body, &input)
 	if err != nil {
-		return TransactionInputs{}, err
+		return models.TransactionInputs{}, err
 	}
 	if input.Description == "" {
-		return TransactionInputs{}, errors.New("invalid description")
+		return models.TransactionInputs{}, errors.New("invalid description")
 	}
 	if len(input.Description) > 10 {
-		return TransactionInputs{}, errors.New("invalid description length")
+		return models.TransactionInputs{}, errors.New("invalid description length")
 	}
 	if input.Value <= 0 {
-		return TransactionInputs{}, errors.New("invalid value")
+		return models.TransactionInputs{}, errors.New("invalid value")
 	}
 	return input, nil
 }
