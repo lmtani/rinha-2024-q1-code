@@ -7,13 +7,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func handleGetExtrato(c *routing.Context) error {
+func handleGetStatement(c *routing.Context) error {
 	clientID, err := parseClientID(c.Param("id"))
 	if err != nil {
 		return respondWithError(c, "Invalid client ID", fasthttp.StatusNotFound)
 	}
 
-	cwt, err := getClienteWithTransacoes(dbpool, clientID)
+	cwt, err := getClientWithTransactions(dbpool, clientID)
 	if err != nil {
 		if err.Error() == "client not found" {
 			return respondWithError(c, "Client not found", fasthttp.StatusNotFound)
@@ -21,12 +21,12 @@ func handleGetExtrato(c *routing.Context) error {
 		return err
 	}
 
-	return respondWithJSON(c, ExtratoResponse{
-		Saldo: SaldoResponse{
-			Total:       cwt.Saldo,
+	return respondWithJSON(c, StatementResponse{
+		Balance: BalanceResponse{
+			Total:       cwt.Balance,
 			DataExtrato: time.Now(),
-			Limite:      cwt.Limite,
+			Limite:      cwt.Limit,
 		},
-		Transacoes: cwt.Transacoes,
+		Transactions: cwt.Transacoes,
 	})
 }

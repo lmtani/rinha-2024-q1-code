@@ -2,44 +2,44 @@ package main
 
 import "time"
 
-type Cliente struct {
-	ID     int
-	Nome   string
-	Limite int
-	Saldo  int
+type Client struct {
+	ID      int
+	Name    string
+	Limit   int
+	Balance int
 }
 
-type Transacao struct {
+type Transaction struct {
 	ClienteID   int       `json:"-"` // ignore this field when marshalling
-	Valor       int       `json:"valor"`
-	Tipo        string    `json:"tipo"`
-	Descricao   string    `json:"descricao"`
-	RealizadaEm time.Time `json:"realizada_em"`
+	Value       int       `json:"valor"`
+	Type        string    `json:"tipo"`
+	Description string    `json:"descricao"`
+	Date        time.Time `json:"realizada_em"`
 }
 
-type ClienteComTransacoes struct {
-	Cliente
-	Transacoes []Transacao
+type ClientWithTransactions struct {
+	Client
+	Transacoes []Transaction
 }
 
-type TransacaoInput struct {
-	Valor     int    `json:"valor"`
-	Tipo      string `json:"tipo"`
-	Descricao string `json:"descricao"`
+type TransactionInputs struct {
+	Value       int    `json:"valor"`
+	Type        string `json:"tipo"`
+	Description string `json:"descricao"`
 }
 
-type TransacaoResponse struct {
-	Limite int `json:"limite"`
-	Saldo  int `json:"saldo"`
+type TransactionResponse struct {
+	Limit   int `json:"limite"`
+	Balance int `json:"saldo"`
 }
 
-type SaldoResponse struct {
+type BalanceResponse struct {
 	Total       int       `json:"total"`
 	DataExtrato time.Time `json:"data_extrato"`
 	Limite      int       `json:"limite"`
 }
 
-type ExtratoResponse struct {
-	Saldo      SaldoResponse `json:"saldo"`
-	Transacoes []Transacao   `json:"ultimas_transacoes"`
+type StatementResponse struct {
+	Balance      BalanceResponse `json:"saldo"`
+	Transactions []Transaction   `json:"ultimas_transacoes"`
 }

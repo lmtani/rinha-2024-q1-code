@@ -11,7 +11,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func handlePostTransacoes(c *routing.Context) error {
+func handlePostTransactions(c *routing.Context) error {
 	clientID, err := parseClientID(c.Param("id"))
 	if err != nil {
 		return respondWithError(c, "Invalid client ID", fasthttp.StatusNotFound)
@@ -40,15 +40,15 @@ func handlePostTransacoes(c *routing.Context) error {
 		return respondWithError(c, err.Error(), fasthttp.StatusUnprocessableEntity)
 	}
 
-	if cliente.Saldo+value < -cliente.Limite {
+	if cliente.Balance+value < -cliente.Limit {
 		return respondWithError(c, "New saldo exceeds the limit", fasthttp.StatusUnprocessableEntity)
 	}
 
-	err = insertTransaction(tx, Transacao{ // insertTransaction now uses tx
-		ClienteID: clientID,
-		Valor:     value,
-		Tipo:      input.Tipo,
-		Descricao: input.Descricao,
+	err = insertTransaction(tx, Transaction{ // insertTransaction now uses tx
+		ClienteID:   clientID,
+		Value:       value,
+		Type:        input.Type,
+		Description: input.Description,
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -70,18 +70,18 @@ func handlePostTransacoes(c *routing.Context) error {
 		return err
 	}
 
-	return respondWithJSON(c, TransacaoResponse{
-		Limite: cliente.Limite,
-		Saldo:  cliente.Saldo + value,
+	return respondWithJSON(c, TransactionResponse{
+		Limit:   cliente.Limit,
+		Balance: cliente.Balance + value,
 	})
 }
 
-func parseValue(input TransacaoInput) (int, error) {
+func parseValue(input TransactionInputs) (int, error) {
 	var value int
-	if input.Tipo == "c" {
-		value = input.Valor
-	} else if input.Tipo == "d" {
-		value = -input.Valor
+	if input.Type == "c" {
+		value = input.Value
+	} else if input.Type == "d" {
+		value = -input.Value
 	} else {
 		return 0, errors.New("invalid transaction type")
 	}
@@ -96,20 +96,20 @@ func parseClientID(clientIDStr string) (int, error) {
 	return clientID, nil
 }
 
-func parseAndValidateInput(body []byte) (TransacaoInput, error) {
-	var input TransacaoInput
+func parseAndValidateInput(body []byte) (TransactionInputs, error) {
+	var input TransactionInputs
 	err := json.Unmarshal(body, &input)
 	if err != nil {
-		return TransacaoInput{}, err
+		return TransactionInputs{}, err
 	}
-	if input.Descricao == "" {
-		return TransacaoInput{}, errors.New("invalid description")
+	if input.Description == "" {
+		return TransactionInputs{}, errors.New("invalid description")
 	}
-	if len(input.Descricao) > 10 {
-		return TransacaoInput{}, errors.New("invalid description length")
+	if len(input.Description) > 10 {
+		return TransactionInputs{}, errors.New("invalid description length")
 	}
-	if input.Valor <= 0 {
-		return TransacaoInput{}, errors.New("invalid value")
+	if input.Value <= 0 {
+		return TransactionInputs{}, errors.New("invalid value")
 	}
 	return input, nil
 }

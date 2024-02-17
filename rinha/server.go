@@ -17,8 +17,8 @@ func main() {
 	defer dbpool.Close()
 
 	router := routing.New()
-	router.Get("/clientes/<id>/extrato", handleGetExtrato)
-	router.Post("/clientes/<id>/transacoes", handlePostTransacoes)
+	router.Get("/clientes/<id>/extrato", handleGetStatement)
+	router.Post("/clientes/<id>/transacoes", handlePostTransactions)
 
 	//// Setup pprof handler
 	//// Wrap the pprofhandler for compatibility with fasthttp-routing
