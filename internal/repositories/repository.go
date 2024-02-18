@@ -6,16 +6,30 @@ import (
 	"errors"
 	"math"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 )
 
+type Repository interface {
+	GetClientWithTransactions(clientID int) (models.ClientWithTransactions, error)
+	InsertTransaction(t models.Transaction) error
+	UpdateSaldo(clienteID, valor int) error
+	GetClient(clientID int) (models.Client, error)
+}
+
+type PostgresRepository struct {
+	dbpool *pgxpool.Pool
+}
+
+func NewPostgresRepository(dbpool *pgxpool.Pool) *PostgresRepository {
+	return &PostgresRepository{dbpool}
+}
+
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func GetClient(tx pgx.Tx, clientID int) (models.Client, error) {
+func (pr *PostgresRepository) GetClient(clientID int) (models.Client, error) {
 	const query = "SELECT id, nome, limite, saldo FROM clientes WHERE id = $1"
 	var c models.Client
-	err := tx.QueryRow(context.Background(), query, clientID).Scan(&c.ID, &c.Name, &c.Limit, &c.Balance)
+	err := pr.dbpool.QueryRow(context.Background(), query, clientID).Scan(&c.ID, &c.Name, &c.Limit, &c.Balance)
 	if err != nil {
 		return models.Client{}, err
 	}
@@ -23,21 +37,21 @@ func GetClient(tx pgx.Tx, clientID int) (models.Client, error) {
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func InsertTransaction(tx pgx.Tx, t models.Transaction) error {
+func (pr *PostgresRepository) InsertTransaction(t models.Transaction) error {
 	const query = "INSERT INTO transacoes (cliente_id, valor, realizada_em, descricao, tipo) VALUES ($1, $2, now(), $3, $4)"
-	_, err := tx.Exec(context.Background(), query, t.ClienteID, t.Value, t.Description, t.Type)
+	_, err := pr.dbpool.Exec(context.Background(), query, t.ClienteID, t.Value, t.Description, t.Type)
 	return err
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func UpdateSaldo(tx pgx.Tx, clienteID, valor int) error {
+func (pr *PostgresRepository) UpdateSaldo(clienteID, valor int) error {
 	const query = "UPDATE clientes SET saldo = saldo + $1 WHERE id = $2"
-	_, err := tx.Exec(context.Background(), query, valor, clienteID)
+	_, err := pr.dbpool.Exec(context.Background(), query, valor, clienteID)
 	return err
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func GetClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (models.ClientWithTransactions, error) {
+func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (models.ClientWithTransactions, error) {
 	const query = `
     SELECT c.id, c.limite, c.saldo, t.valor, t.tipo, t.descricao, t.realizada_em
     FROM clientes c
@@ -46,7 +60,7 @@ func GetClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (models.Clie
     ORDER BY t.realizada_em DESC
     LIMIT 10`
 
-	rows, err := dbpool.Query(context.Background(), query, clienteID)
+	rows, err := pr.dbpool.Query(context.Background(), query, clienteID)
 	if err != nil {
 		return models.ClientWithTransactions{}, err
 	}

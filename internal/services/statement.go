@@ -2,12 +2,10 @@ package services
 
 import (
 	"time"
-
-	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 )
 
 func (ts *Service) HandleGetStatement(clientID int) (StatementResponse, error) {
-	cwt, err := repositories.GetClientWithTransactions(ts.dbpool, clientID)
+	cwt, err := ts.repository.GetClientWithTransactions(clientID)
 	if err != nil {
 		return StatementResponse{}, err
 	}

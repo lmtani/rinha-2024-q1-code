@@ -1,15 +1,13 @@
 package services
 
 import (
-	"context"
 	"errors"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 )
 
 type Service struct {
-	dbpool *pgxpool.Pool
+	repository repositories.Repository
 }
 
 var (
@@ -23,8 +21,8 @@ var (
 	ErrorInvalidValue             = errors.New("invalid value")
 )
 
-func NewService(dbpool *pgxpool.Pool) *Service {
-	return &Service{dbpool}
+func NewService(r repositories.Repository) *Service {
+	return &Service{repository: r}
 }
 
 func (ts *Service) HandlePostTransactions(clientID int, input models.TransactionInputs) (models.TransactionResponse, error) {
@@ -34,24 +32,18 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 	}
 
 	// Start a new transaction
-	tx, err := ts.dbpool.Begin(context.Background())
-	if err != nil {
-		return models.TransactionResponse{}, err
-	}
-	defer tx.Rollback(context.Background())
-
-	cliente, err := repositories.GetClient(tx, clientID)
+	cliente, err := ts.repository.GetClient(clientID)
 	if err != nil {
 		return models.TransactionResponse{}, ErrClientNotFound
 	}
 
-	value := newBalance(cliente, input)
+	value := newBalance(input)
 
 	if cliente.Balance+value < -cliente.Limit {
 		return models.TransactionResponse{}, ErrInvalidBalance
 	}
 
-	err = repositories.InsertTransaction(tx, models.Transaction{ // insertTransaction now uses tx
+	err = ts.repository.InsertTransaction(models.Transaction{ // insertTransaction now uses tx
 		ClienteID:   clientID,
 		Value:       input.Value,
 		Type:        input.Type,
@@ -62,8 +54,7 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 	}
 
 	// update cliente with the new saldo
-	err = repositories.UpdateSaldo(tx, clientID, input.Value)
-	err = tx.Commit(context.Background())
+	err = ts.repository.UpdateSaldo(clientID, input.Value)
 	if err != nil {
 		return models.TransactionResponse{}, ErrUpdateSaldo
 	}
@@ -90,7 +81,7 @@ func validateInputs(input models.TransactionInputs) error {
 	return nil
 }
 
-func newBalance(client models.Client, t models.TransactionInputs) int {
+func newBalance(t models.TransactionInputs) int {
 	var value int
 	if t.Type == "c" {
 		value = t.Value

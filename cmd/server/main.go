@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
+
 	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmtani/rinha-2024-q1-code/internal/services"
@@ -22,7 +24,8 @@ type Server struct {
 }
 
 func NewServer(dbpool *pgxpool.Pool) *Server {
-	return &Server{dbpool: dbpool, service: services.NewService(dbpool)}
+	repository := repositories.NewPostgresRepository(dbpool)
+	return &Server{dbpool: dbpool, service: services.NewService(repository)}
 
 }
 
