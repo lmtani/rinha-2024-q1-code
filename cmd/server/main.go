@@ -3,50 +3,97 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/lmtani/rinha-de-backend-2024/internal/services"
 	"log"
 	"os"
 	"time"
 
+	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
+
+	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lmtani/rinha-2024-q1-code/internal/services"
 	routing "github.com/qiangxue/fasthttp-routing"
 	"github.com/valyala/fasthttp"
 )
 
-var dbpool *pgxpool.Pool
+type Server struct {
+	dbpool  *pgxpool.Pool
+	service *services.Service
+}
+
+func NewServer(dbpool *pgxpool.Pool) *Server {
+	repository := repositories.NewPostgresRepository(dbpool)
+	return &Server{dbpool: dbpool, service: services.NewService(repository)}
+
+}
 
 func main() {
 	ctx := context.Background()
-	dbpool = initializeDatabase(ctx, dbpool)
+	dbpool := initializeDatabase(ctx)
 	defer dbpool.Close()
 
-	service := services.NewService(dbpool)
+	server := NewServer(dbpool)
 
 	fmt.Println("Server running on port 8080")
 
 	router := routing.New()
-	router.Get("/clientes/<id>/extrato", service.HandleGetStatement)
-	router.Post("/clientes/<id>/transacoes", service.HandlePostTransactions)
-
-	//// Setup pprof handler
-	//// Wrap the pprofhandler for compatibility with fasthttp-routing
-	//router.Get("/debug/pprof/*", func(c *routing.Context) error {
-	//	pprofhandler.PprofHandler(c.RequestCtx)
-	//	return nil
-	//})
+	router.Get("/clientes/<id>/extrato", server.StatementHandler)
+	router.Post("/clientes/<id>/transacoes", server.TransactionsHandler)
 
 	log.Fatal(fasthttp.ListenAndServe("0.0.0.0:8080", router.HandleRequest))
 }
 
-func initializeDatabase(ctx context.Context, dbpool *pgxpool.Pool) *pgxpool.Pool {
-	var err error
+func (s *Server) StatementHandler(c *routing.Context) error {
+	clientID, err := parseClientID(c.Param("id"))
+	if err != nil {
+		return respondWithError(c, "Invalid client ID", fasthttp.StatusNotFound)
+	}
+
+	r, err := s.service.HandleGetStatement(clientID)
+	if err != nil {
+		return handleServiceError(c, err)
+	}
+
+	return respondWithJSON(c, r)
+
+}
+
+func (s *Server) TransactionsHandler(c *routing.Context) error {
+	clientID, err := parseClientID(c.Param("id"))
+	if err != nil {
+		return respondWithError(c, "Invalid client ID", fasthttp.StatusNotFound)
+	}
+
+	input, err := parseAndValidateInput(c.Request.Body())
+	if err != nil {
+		return respondWithError(c, "Invalid request body", fasthttp.StatusUnprocessableEntity)
+	}
+
+	r, err := s.service.HandlePostTransactions(clientID, &input)
+	if err != nil {
+		return handleServiceError(c, err)
+	}
+
+	return respondWithJSON(c, r)
+}
+
+func initializeDatabase(ctx context.Context) *pgxpool.Pool {
+	var (
+		dbpool *pgxpool.Pool
+		err    error
+	)
 	for i := 0; i < 5; i++ { // Retry up to 5 times
 		dbpool, err = pgxpool.New(ctx, os.Getenv("DB_HOSTNAME"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
+			continue
+		}
+		err = dbpool.Ping(ctx)
 		if err == nil {
 			break
 		}
-		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
-		time.Sleep(10 * time.Second)
+		fmt.Fprintf(os.Stderr, "Unable to ping database: %v\n", err)
+		time.Sleep(2 * time.Second)
 	}
 
 	if err != nil {
@@ -54,4 +101,30 @@ func initializeDatabase(ctx context.Context, dbpool *pgxpool.Pool) *pgxpool.Pool
 		os.Exit(1)
 	}
 	return dbpool
+}
+
+func respondWithError(c *routing.Context, message string, statusCode int) error {
+	c.SetStatusCode(statusCode)
+	c.SetContentType("application/json; charset=utf8")
+	c.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, message)))
+	return nil
+}
+
+func respondWithJSON(c *routing.Context, data interface{}) error {
+	jsonResponse, err := json.Marshal(data)
+	if err != nil {
+		c.Error("Internal Server Error", fasthttp.StatusInternalServerError)
+		return nil
+	}
+	c.SetContentType("application/json; charset=utf8")
+	c.SetStatusCode(fasthttp.StatusOK)
+	c.Write(jsonResponse)
+	return nil
+}
+
+func handleServiceError(c *routing.Context, err error) error {
+	if response, ok := errorResponseMap[err]; ok {
+		return respondWithError(c, response.Message, response.StatusCode)
+	}
+	return respondWithError(c, "Internal Server Error", fasthttp.StatusInternalServerError)
 }

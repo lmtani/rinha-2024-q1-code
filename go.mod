@@ -1,4 +1,4 @@
-module github.com/lmtani/rinha-de-backend-2024
+module github.com/lmtani/rinha-2024-q1-code
 
 go 1.21.1
 
