@@ -43,7 +43,7 @@ func TestService_HandlePostTransactions(t *testing.T) {
 		name        string
 		fields      fields
 		args        args
-		want        models.TransactionResponse
+		want        *models.TransactionResponse
 		wantErrType error
 	}{
 		{
@@ -105,7 +105,7 @@ func TestService_HandlePostTransactions(t *testing.T) {
 					Description: "Test",
 				},
 			},
-			want: models.TransactionResponse{
+			want: &models.TransactionResponse{
 				Limit:   1000,
 				Balance: 1100,
 			},
@@ -130,7 +130,7 @@ func TestService_HandlePostTransactions(t *testing.T) {
 					Description: "Test",
 				},
 			},
-			want: models.TransactionResponse{
+			want: &models.TransactionResponse{
 				Limit:   1000,
 				Balance: 900,
 			},

@@ -25,22 +25,22 @@ func NewService(r repositories.Repository) *Service {
 	return &Service{repository: r}
 }
 
-func (ts *Service) HandlePostTransactions(clientID int, input models.TransactionInputs) (models.TransactionResponse, error) {
+func (ts *Service) HandlePostTransactions(clientID int, input models.TransactionInputs) (*models.TransactionResponse, error) {
 	err := validateInputs(input)
 	if err != nil {
-		return models.TransactionResponse{}, err
+		return nil, err
 	}
 
 	// Start a new transaction
 	cliente, err := ts.repository.GetClient(clientID)
 	if err != nil {
-		return models.TransactionResponse{}, ErrClientNotFound
+		return nil, ErrClientNotFound
 	}
 
 	value := newBalance(input)
 
 	if cliente.Balance+value < -cliente.Limit {
-		return models.TransactionResponse{}, ErrInvalidBalance
+		return nil, ErrInvalidBalance
 	}
 
 	err = ts.repository.InsertTransaction(models.Transaction{ // insertTransaction now uses tx
@@ -50,16 +50,16 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 		Description: input.Description,
 	})
 	if err != nil {
-		return models.TransactionResponse{}, ErrInsertTransaction
+		return nil, ErrInsertTransaction
 	}
 
 	// update cliente with the new saldo
 	err = ts.repository.UpdateSaldo(clientID, input.Value)
 	if err != nil {
-		return models.TransactionResponse{}, ErrUpdateSaldo
+		return nil, ErrUpdateSaldo
 	}
 
-	return models.TransactionResponse{
+	return &models.TransactionResponse{
 		Limit:   cliente.Limit,
 		Balance: cliente.Balance + value,
 	}, nil
@@ -69,7 +69,7 @@ func validateInputs(input models.TransactionInputs) error {
 	if input.Description == "" {
 		return ErrorInvalidDescription
 	}
-	if len(input.Description) > 10 {
+	if len(input.Description) > 10 || len(input.Description) < 1 {
 		return ErrorInvalidDescriptionLength
 	}
 	if input.Value <= 0 {

@@ -4,13 +4,13 @@ import (
 	"time"
 )
 
-func (ts *Service) HandleGetStatement(clientID int) (StatementResponse, error) {
+func (ts *Service) HandleGetStatement(clientID int) (*StatementResponse, error) {
 	cwt, err := ts.repository.GetClientWithTransactions(clientID)
 	if err != nil {
-		return StatementResponse{}, err
+		return nil, err
 	}
 
-	return StatementResponse{
+	return &StatementResponse{
 		Balance: BalanceResponse{
 			Total:       cwt.Balance,
 			DataExtrato: time.Now(),
