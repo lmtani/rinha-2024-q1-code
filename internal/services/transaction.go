@@ -31,19 +31,19 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 		return nil, err
 	}
 
-	// Start a new transaction
 	cliente, err := ts.repository.GetClient(clientID)
 	if err != nil {
-		return nil, ErrClientNotFound
+		return nil, err
 	}
 
-	value := newBalance(input)
+	value := SetValueSignal(input)
+	cliente.Balance += value
 
-	if cliente.Balance+value < -cliente.Limit {
+	if input.Type == "d" && cliente.Balance < -cliente.Limit {
 		return nil, ErrInvalidBalance
 	}
 
-	err = ts.repository.InsertTransaction(models.Transaction{ // insertTransaction now uses tx
+	err = ts.repository.InsertTransaction(value, models.Transaction{ // insertTransaction now uses tx
 		ClienteID:   clientID,
 		Value:       input.Value,
 		Type:        input.Type,
@@ -53,15 +53,9 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 		return nil, ErrInsertTransaction
 	}
 
-	// update cliente with the new saldo
-	err = ts.repository.UpdateSaldo(clientID, input.Value)
-	if err != nil {
-		return nil, ErrUpdateSaldo
-	}
-
 	return &models.TransactionResponse{
 		Limit:   cliente.Limit,
-		Balance: cliente.Balance + value,
+		Balance: cliente.Balance,
 	}, nil
 }
 
@@ -81,7 +75,7 @@ func validateInputs(input models.TransactionInputs) error {
 	return nil
 }
 
-func newBalance(t models.TransactionInputs) int {
+func SetValueSignal(t models.TransactionInputs) int {
 	var value int
 	if t.Type == "c" {
 		value = t.Value

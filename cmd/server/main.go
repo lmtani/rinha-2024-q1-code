@@ -53,7 +53,7 @@ func (s *Server) StatementHandler(c *routing.Context) error {
 
 	r, err := s.service.HandleGetStatement(clientID)
 	if err != nil {
-		return respondWithError(c, err.Error(), fasthttp.StatusInternalServerError)
+		return handleServiceError(c, err)
 	}
 
 	return respondWithJSON(c, r)
@@ -83,11 +83,16 @@ func initializeDatabase(ctx context.Context, dbpool *pgxpool.Pool) *pgxpool.Pool
 	var err error
 	for i := 0; i < 5; i++ { // Retry up to 5 times
 		dbpool, err = pgxpool.New(ctx, os.Getenv("DB_HOSTNAME"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
+			continue
+		}
+		err := dbpool.Ping(ctx)
 		if err == nil {
 			break
 		}
-		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
-		time.Sleep(10 * time.Second)
+		fmt.Fprintf(os.Stderr, "Unable to ping database: %v\n", err)
+		time.Sleep(2 * time.Second)
 	}
 
 	if err != nil {
@@ -117,6 +122,7 @@ func respondWithJSON(c *routing.Context, data interface{}) error {
 }
 
 func handleServiceError(c *routing.Context, err error) error {
+	fmt.Println(err)
 	if response, ok := errorResponseMap[err]; ok {
 		return respondWithError(c, response.Message, response.StatusCode)
 	}

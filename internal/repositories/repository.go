@@ -10,11 +10,12 @@ import (
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 )
 
+var ErrClientNotFound = errors.New("client not found")
+
 type Repository interface {
-	GetClientWithTransactions(clientID int) (models.ClientWithTransactions, error)
-	InsertTransaction(t models.Transaction) error
-	UpdateSaldo(clienteID, valor int) error
-	GetClient(clientID int) (models.Client, error)
+	GetClientWithTransactions(clientID int) (*models.ClientWithTransactions, error)
+	InsertTransaction(v int, t models.Transaction) error
+	GetClient(clientID int) (*models.Client, error)
 }
 
 type PostgresRepository struct {
@@ -26,32 +27,44 @@ func NewPostgresRepository(dbpool *pgxpool.Pool) *PostgresRepository {
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func (pr *PostgresRepository) GetClient(clientID int) (models.Client, error) {
+func (pr *PostgresRepository) GetClient(clientID int) (*models.Client, error) {
 	const query = "SELECT id, nome, limite, saldo FROM clientes WHERE id = $1"
 	var c models.Client
 	err := pr.dbpool.QueryRow(context.Background(), query, clientID).Scan(&c.ID, &c.Name, &c.Limit, &c.Balance)
 	if err != nil {
-		return models.Client{}, err
+		return nil, err
 	}
-	return c, nil
+	return &c, nil
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func (pr *PostgresRepository) InsertTransaction(t models.Transaction) error {
+func (pr *PostgresRepository) InsertTransaction(v int, t models.Transaction) error {
+	// Start db transaction
+	tx, err := pr.dbpool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(context.Background())
+
+	// Insert transaction
 	const query = "INSERT INTO transacoes (cliente_id, valor, realizada_em, descricao, tipo) VALUES ($1, $2, now(), $3, $4)"
-	_, err := pr.dbpool.Exec(context.Background(), query, t.ClienteID, t.Value, t.Description, t.Type)
-	return err
+	_, err = tx.Exec(context.Background(), query, t.ClienteID, t.Value, t.Description, t.Type)
+	if err != nil {
+		return err
+	}
+
+	// Update saldo
+	const updateQuery = "UPDATE clientes SET saldo = saldo + $1 WHERE id = $2"
+	_, err = tx.Exec(context.Background(), updateQuery, v, t.ClienteID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(context.Background())
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func (pr *PostgresRepository) UpdateSaldo(clienteID, valor int) error {
-	const query = "UPDATE clientes SET saldo = saldo + $1 WHERE id = $2"
-	_, err := pr.dbpool.Exec(context.Background(), query, valor, clienteID)
-	return err
-}
-
-//goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (models.ClientWithTransactions, error) {
+func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (*models.ClientWithTransactions, error) {
 	const query = `
     SELECT c.id, c.limite, c.saldo, t.valor, t.tipo, t.descricao, t.realizada_em
     FROM clientes c
@@ -62,7 +75,7 @@ func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (models.C
 
 	rows, err := pr.dbpool.Query(context.Background(), query, clienteID)
 	if err != nil {
-		return models.ClientWithTransactions{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -76,7 +89,7 @@ func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (models.C
 
 		// Scan the row
 		if err := rows.Scan(&result.Client.ID, &result.Client.Limit, &result.Client.Balance, &valor, &tipo, &desc, &realizadaEm); err != nil {
-			return models.ClientWithTransactions{}, err
+			return nil, err
 		}
 
 		var intVal int
@@ -100,7 +113,7 @@ func (pr *PostgresRepository) GetClientWithTransactions(clienteID int) (models.C
 		}
 	}
 	if !hasCliente {
-		return models.ClientWithTransactions{}, errors.New("client not found")
+		return nil, ErrClientNotFound
 	}
-	return result, nil
+	return &result, nil
 }

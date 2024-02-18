@@ -15,20 +15,14 @@ type MockRepository struct {
 	clientWithTransactions models.ClientWithTransactions
 }
 
-func (m MockRepository) GetClient(clientID int) (models.Client, error) {
-	return m.client, m.err
-}
+func (m MockRepository) GetClient(clientID int) (*models.Client, error) { return &m.client, m.err }
 
-func (m MockRepository) InsertTransaction(t models.Transaction) error {
+func (m MockRepository) InsertTransaction(v int, t models.Transaction) error {
 	return m.err
 }
 
-func (m MockRepository) UpdateSaldo(clienteID, valor int) error {
-	return m.err
-}
-
-func (m MockRepository) GetClientWithTransactions(clienteID int) (models.ClientWithTransactions, error) {
-	return m.clientWithTransactions, m.err
+func (m MockRepository) GetClientWithTransactions(clienteID int) (*models.ClientWithTransactions, error) {
+	return &m.clientWithTransactions, m.err
 }
 
 func TestService_HandlePostTransactions(t *testing.T) {
@@ -84,6 +78,28 @@ func TestService_HandlePostTransactions(t *testing.T) {
 				},
 			},
 			wantErrType: ErrorInvalidDescriptionLength,
+		},
+		{
+			name: "Test HandlePostTransactions should return error when description lower than 1",
+			fields: fields{
+				repository: MockRepository{
+					client: models.Client{
+						ID:      1,
+						Name:    "Test",
+						Limit:   1000,
+						Balance: 1000,
+					},
+				},
+			},
+			args: args{
+				clientID: 1,
+				input: models.TransactionInputs{
+					Value:       100,
+					Type:        "c",
+					Description: "",
+				},
+			},
+			wantErrType: ErrorInvalidDescription,
 		},
 		{
 			name: "Test HandlePostTransactions with success credit transaction",
@@ -143,14 +159,14 @@ func TestService_HandlePostTransactions(t *testing.T) {
 						ID:      1,
 						Name:    "Test",
 						Limit:   1,
-						Balance: 10,
+						Balance: -1,
 					},
 				},
 			},
 			args: args{
 				clientID: 1,
 				input: models.TransactionInputs{
-					Value:       100,
+					Value:       1,
 					Type:        "d",
 					Description: "Test",
 				},

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/goccy/go-json"
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
+	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 	"github.com/lmtani/rinha-2024-q1-code/internal/services"
 	"github.com/valyala/fasthttp"
 	"strconv"
@@ -21,6 +22,7 @@ var errorResponseMap = map[error]struct {
 	services.ErrInvalidBalance:             {"Invalid balance", fasthttp.StatusUnprocessableEntity},
 	services.ErrInsertTransaction:          {"Error inserting transaction", fasthttp.StatusInternalServerError},
 	services.ErrUpdateSaldo:                {"Error updating saldo", fasthttp.StatusInternalServerError},
+	repositories.ErrClientNotFound:         {"Client not found", fasthttp.StatusNotFound},
 }
 
 func parseAndValidateInput(body []byte) (models.TransactionInputs, error) {
