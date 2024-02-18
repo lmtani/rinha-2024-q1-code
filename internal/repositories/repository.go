@@ -14,7 +14,7 @@ var ErrClientNotFound = errors.New("client not found")
 
 type Repository interface {
 	GetClientWithTransactions(clientID int) (*models.ClientWithTransactions, error)
-	InsertTransaction(v int, t models.Transaction) error
+	InsertTransaction(v int, t *models.Transaction) error
 	GetClient(clientID int) (*models.Client, error)
 }
 
@@ -38,7 +38,7 @@ func (pr *PostgresRepository) GetClient(clientID int) (*models.Client, error) {
 }
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
-func (pr *PostgresRepository) InsertTransaction(v int, t models.Transaction) error {
+func (pr *PostgresRepository) InsertTransaction(v int, t *models.Transaction) error {
 	// Start db transaction
 	tx, err := pr.dbpool.Begin(context.Background())
 	if err != nil {

@@ -2,12 +2,13 @@ package main
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/goccy/go-json"
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 	"github.com/lmtani/rinha-2024-q1-code/internal/services"
 	"github.com/valyala/fasthttp"
-	"strconv"
 )
 
 var errorResponseMap = map[error]struct {

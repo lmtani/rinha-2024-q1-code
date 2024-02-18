@@ -1,8 +1,6 @@
 package services
 
-import (
-	"time"
-)
+import "time"
 
 func (ts *Service) HandleGetStatement(clientID int) (*StatementResponse, error) {
 	cwt, err := ts.repository.GetClientWithTransactions(clientID)

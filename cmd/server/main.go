@@ -16,8 +16,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var dbpool *pgxpool.Pool
-
 type Server struct {
 	dbpool  *pgxpool.Pool
 	service *services.Service
@@ -31,7 +29,7 @@ func NewServer(dbpool *pgxpool.Pool) *Server {
 
 func main() {
 	ctx := context.Background()
-	dbpool = initializeDatabase(ctx, dbpool)
+	dbpool := initializeDatabase(ctx)
 	defer dbpool.Close()
 
 	server := NewServer(dbpool)
@@ -71,7 +69,7 @@ func (s *Server) TransactionsHandler(c *routing.Context) error {
 		return respondWithError(c, "Invalid request body", fasthttp.StatusUnprocessableEntity)
 	}
 
-	r, err := s.service.HandlePostTransactions(clientID, input)
+	r, err := s.service.HandlePostTransactions(clientID, &input)
 	if err != nil {
 		return handleServiceError(c, err)
 	}
@@ -79,15 +77,18 @@ func (s *Server) TransactionsHandler(c *routing.Context) error {
 	return respondWithJSON(c, r)
 }
 
-func initializeDatabase(ctx context.Context, dbpool *pgxpool.Pool) *pgxpool.Pool {
-	var err error
+func initializeDatabase(ctx context.Context) *pgxpool.Pool {
+	var (
+		dbpool *pgxpool.Pool
+		err    error
+	)
 	for i := 0; i < 5; i++ { // Retry up to 5 times
 		dbpool, err = pgxpool.New(ctx, os.Getenv("DB_HOSTNAME"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
 			continue
 		}
-		err := dbpool.Ping(ctx)
+		err = dbpool.Ping(ctx)
 		if err == nil {
 			break
 		}
@@ -122,7 +123,6 @@ func respondWithJSON(c *routing.Context, data interface{}) error {
 }
 
 func handleServiceError(c *routing.Context, err error) error {
-	fmt.Println(err)
 	if response, ok := errorResponseMap[err]; ok {
 		return respondWithError(c, response.Message, response.StatusCode)
 	}

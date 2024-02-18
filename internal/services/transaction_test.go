@@ -2,10 +2,11 @@ package services
 
 import (
 	"errors"
-	"github.com/lmtani/rinha-2024-q1-code/internal/models"
-	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 	"reflect"
 	"testing"
+
+	"github.com/lmtani/rinha-2024-q1-code/internal/models"
+	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 )
 
 type MockRepository struct {
@@ -17,7 +18,7 @@ type MockRepository struct {
 
 func (m MockRepository) GetClient(clientID int) (*models.Client, error) { return &m.client, m.err }
 
-func (m MockRepository) InsertTransaction(v int, t models.Transaction) error {
+func (m MockRepository) InsertTransaction(v int, t *models.Transaction) error {
 	return m.err
 }
 
@@ -179,7 +180,7 @@ func TestService_HandlePostTransactions(t *testing.T) {
 			ts := &Service{
 				repository: tt.fields.repository,
 			}
-			got, err := ts.HandlePostTransactions(tt.args.clientID, tt.args.input)
+			got, err := ts.HandlePostTransactions(tt.args.clientID, &tt.args.input)
 			if (err != nil) && !errors.Is(err, tt.wantErrType) {
 				t.Errorf("HandlePostTransactions() error = %v, wantErr %v", err, tt.wantErrType)
 				return

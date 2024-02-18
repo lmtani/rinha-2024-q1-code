@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 	"github.com/lmtani/rinha-2024-q1-code/internal/repositories"
 )
@@ -25,7 +26,7 @@ func NewService(r repositories.Repository) *Service {
 	return &Service{repository: r}
 }
 
-func (ts *Service) HandlePostTransactions(clientID int, input models.TransactionInputs) (*models.TransactionResponse, error) {
+func (ts *Service) HandlePostTransactions(clientID int, input *models.TransactionInputs) (*models.TransactionResponse, error) {
 	err := validateInputs(input)
 	if err != nil {
 		return nil, err
@@ -36,14 +37,14 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 		return nil, err
 	}
 
-	value := SetValueSignal(input)
+	value := SetValueSignal(input.Value, input.Type)
 	cliente.Balance += value
 
 	if input.Type == "d" && cliente.Balance < -cliente.Limit {
 		return nil, ErrInvalidBalance
 	}
 
-	err = ts.repository.InsertTransaction(value, models.Transaction{ // insertTransaction now uses tx
+	err = ts.repository.InsertTransaction(value, &models.Transaction{ // insertTransaction now uses tx
 		ClienteID:   clientID,
 		Value:       input.Value,
 		Type:        input.Type,
@@ -59,7 +60,7 @@ func (ts *Service) HandlePostTransactions(clientID int, input models.Transaction
 	}, nil
 }
 
-func validateInputs(input models.TransactionInputs) error {
+func validateInputs(input *models.TransactionInputs) error {
 	if input.Description == "" {
 		return ErrorInvalidDescription
 	}
@@ -75,12 +76,11 @@ func validateInputs(input models.TransactionInputs) error {
 	return nil
 }
 
-func SetValueSignal(t models.TransactionInputs) int {
-	var value int
-	if t.Type == "c" {
-		value = t.Value
+func SetValueSignal(value int, tType string) int {
+	if tType == "c" {
+		value = value
 	} else {
-		value = -t.Value
+		value = -value
 	}
 	return value
 }

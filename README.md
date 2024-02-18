@@ -7,5 +7,6 @@
 docker-compose up -d db
 
 ## Suba o servidor
-DB_HOSTNAME=postgres://admin:123@localhost/rinha go run cmd/server/main.go
+go build -o main ./cmd/server
+DB_HOSTNAME=postgres://admin:123@localhost/rinha ./main
 ```
