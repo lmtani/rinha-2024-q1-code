@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/lmtani/rinha-de-backend-2024/internal/models"
+	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 )
 
 type BalanceResponse struct {

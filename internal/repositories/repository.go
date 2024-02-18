@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lmtani/rinha-de-backend-2024/internal/models"
+	"github.com/lmtani/rinha-2024-q1-code/internal/models"
 )
 
 //goland:noinspection SqlNoDataSourceInspection,SqlResolve
@@ -78,7 +78,7 @@ func GetClientWithTransactions(dbpool *pgxpool.Pool, clienteID int) (models.Clie
 				Type:        tipo.String,
 				Value:       intVal,
 			}
-			result.Transacoes = append(result.Transacoes, transacao)
+			result.Transactions = append(result.Transactions, transacao)
 		}
 
 		if !hasCliente {

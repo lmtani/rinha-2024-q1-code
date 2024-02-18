@@ -9,5 +9,5 @@ type Client struct {
 
 type ClientWithTransactions struct {
 	Client
-	Transacoes []Transaction
+	Transactions []Transaction
 }
