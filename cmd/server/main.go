@@ -31,16 +31,18 @@ func main() {
 	ctx := context.Background()
 	dbpool := initializeDatabase(ctx)
 	defer dbpool.Close()
+	// GET PORT from env var
+	port := os.Getenv("PORT")
 
 	server := NewServer(dbpool)
 
-	fmt.Println("Server running on port 8080")
+	fmt.Println(fmt.Sprintf("Server running on port %s", port))
 
 	router := routing.New()
 	router.Get("/clientes/<id>/extrato", server.StatementHandler)
 	router.Post("/clientes/<id>/transacoes", server.TransactionsHandler)
 
-	log.Fatal(fasthttp.ListenAndServe("0.0.0.0:8080", router.HandleRequest))
+	log.Fatal(fasthttp.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", port), router.HandleRequest))
 }
 
 func (s *Server) StatementHandler(c *routing.Context) error {
