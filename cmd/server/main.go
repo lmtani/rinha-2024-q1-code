@@ -39,7 +39,7 @@ func main() {
 
 	server := NewServer(dbpool)
 
-	fmt.Println(fmt.Sprintf("Server running on port %s", port))
+	fmt.Printf("Server running on port %s\n", port)
 
 	router := routing.New()
 	router.Get("/clientes/<id>/extrato", server.StatementHandler)
