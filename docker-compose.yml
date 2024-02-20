@@ -5,6 +5,12 @@ services:
     build:
         context: .
         dockerfile: Dockerfile
+    volumes:
+      - .:/app:cached
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+      # cache dependencies
+      - api:/go/pkg/mod
     hostname: api01
     environment:
       - DB_HOSTNAME=postgres://admin:123@localhost/rinha
@@ -25,7 +31,6 @@ services:
     environment:
       - DB_HOSTNAME=postgres://admin:123@localhost/rinha
       - PORT=8081
-
 
   nginx:
     image: nginx:latest
@@ -58,3 +63,6 @@ services:
         limits:
           cpus: "1"
           memory: "300MB"
+
+volumes:
+  api:
