@@ -31,8 +31,11 @@ func main() {
 	ctx := context.Background()
 	dbpool := initializeDatabase(ctx)
 	defer dbpool.Close()
-	// GET PORT from env var
+
 	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
 	server := NewServer(dbpool)
 
