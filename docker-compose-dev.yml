@@ -3,6 +3,16 @@ version: "3.5"
 
 services:
   api01:
+    build:
+        context: .
+        dockerfile: Dockerfile
+        target: development
+    volumes:
+      - .:/app:cached
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+      # cache dependencies
+      - api:/go/pkg/mod
     deploy:
       resources:
         limits:
