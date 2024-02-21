@@ -1,6 +1,6 @@
 module github.com/lmtani/rinha-2024-q1-code
 
-go 1.21.1
+go 1.21
 
 require (
 	github.com/goccy/go-json v0.10.2
