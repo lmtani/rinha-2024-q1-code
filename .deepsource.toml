@@ -1,1 +1,17 @@
 version = 1
+
+test_patterns = [
+    "**/*_test.go",
+    "**/examples_*.go"
+]
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+[analyzers.meta]
+import_root = "github.com/lmtani/rinha-2024-q1-code"
