@@ -6,15 +6,15 @@ test_patterns = [
 ]
 
 [[analyzers]]
+name = "test-coverage"
+enabled = true
+
+[[analyzers]]
 name = "shell"
 enabled = true
 
 [[analyzers]]
 name = "go"
-enabled = true
-
-[[analyzers]]
-name = "test-coverage"
 enabled = true
 
 [analyzers.meta]
