@@ -1,5 +1,6 @@
 # rinha-de-backend-2024q1
 
+[![DeepSource](https://app.deepsource.com/gh/lmtani/rinha-2024-q1-code.svg/?label=active+issues&show_trend=true&token=oaZwqcM0_ISSxJOb8jG6RvwX)](https://app.deepsource.com/gh/lmtani/rinha-2024-q1-code/)
 
 ## Development Mode
 
