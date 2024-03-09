@@ -11,3 +11,13 @@ So, in development mode, we're overwriting the limits to be able to have hot-rel
 ```sh
 docker-compose -f docker-compose.yml -f docker-compose-dev.yml up db api01
 ```
+
+## Last Benchmark Results
+
+![image](https://github.com/lmtani/rinha-2024-q1-code/assets/12699242/1ada1208-2885-4946-89f4-4a8fbc07b834)
+
+
+## Acknowledgments
+
+- [Dino](https://github.com/chipytux) for recommending this "Rinha".
+- [Marco](https://github.com/marcosinger) for contributing the hot-reload feature.
